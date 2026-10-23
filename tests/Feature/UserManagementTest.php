@@ -66,4 +66,29 @@ class UserManagementTest extends TestCase
             ->get('/admin/users')
             ->assertOk();
     }
+
+    public function test_admin_can_deactivate_a_customer_account(): void
+    {
+        $admin = User::factory()->create(['role' => User::ROLE_ADMIN]);
+        $customer = User::factory()->create(['role' => User::ROLE_CUSTOMER]);
+        $customer->createToken('existing client');
+
+        $this->actingAs($admin)
+            ->put(route('admin.users.update', $customer), [
+                'name' => $customer->name,
+                'email' => $customer->email,
+                'role' => User::ROLE_CUSTOMER,
+                'is_active' => '0',
+                'password' => '',
+                'password_confirmation' => '',
+            ])
+            ->assertRedirect(route('admin.users.index'));
+
+        $this->assertFalse($customer->fresh()->is_active);
+        $this->assertDatabaseCount('personal_access_tokens', 0);
+
+        $this->actingAs($customer->fresh())
+            ->get(route('profile.edit'))
+            ->assertForbidden();
+    }
 }

@@ -1,0 +1,549 @@
+{
+  "info": {
+    "_postman_id": "c456e398-4f7b-4fc0-955a-27d3c3a0db7c",
+    "name": "Bag Collection - Lab 4 Product Internal API",
+    "description": "Lab 4 CRUD demonstration for the product feature. Admin requests authenticate with Laravel Sanctum bearer tokens. API product deletion permanently removes the product and variants while order item snapshots are preserved.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "0. Get Sanctum admin token",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{adminEmail}}\",\n  \"password\": \"{{adminPassword}}\",\n  \"name\": \"Postman Product API\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/auth/token",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "auth",
+            "token"
+          ]
+        },
+        "description": "Exchanges active administrator credentials for a Sanctum personal access token and saves it to the environment."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Sanctum token is issued with HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "const body = pm.response.json();",
+              "pm.test('Response contains a bearer token for an admin', function () {",
+              "    pm.expect(body.token).to.be.a('string').and.not.empty;",
+              "    pm.expect(body.token_type).to.eql('Bearer');",
+              "    pm.expect(body.user.role).to.eql('admin');",
+              "});",
+              "pm.environment.set('sanctumToken', body.token);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "1. Create product",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sanctumToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Lab 4 Postman Bag\",\n  \"description\": \"Product created with the Lab 4 internal API collection.\",\n  \"is_active\": true,\n  \"variants\": [\n    {\n      \"name\": \"Default\",\n      \"sku\": \"LAB4-{{$guid}}\",\n      \"price\": 899.00,\n      \"stock\": 10,\n      \"is_active\": true\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/products",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "products"
+          ]
+        },
+        "description": "Creates a product and stores its ID and slug in the selected environment for later requests."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Product is created with HTTP 201', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "const body = pm.response.json();",
+              "pm.test('Created product is returned as JSON', function () {",
+              "    pm.expect(body.data).to.have.property('id');",
+              "    pm.expect(body.data.name).to.eql('Lab 4 Postman Bag');",
+              "});",
+              "pm.environment.set('productId', body.data.id);",
+              "pm.environment.set('productSlug', body.data.slug);"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "2. Read all products (admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sanctumToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/products",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "products"
+          ]
+        },
+        "description": "Returns the paginated internal product collection, including inactive products."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Product collection returns HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response contains a product data array', function () {",
+              "    pm.expect(pm.response.json().data).to.be.an('array');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "3. Read one product (admin)",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sanctumToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "products",
+            "{{productId}}"
+          ]
+        },
+        "description": "Reads the product created by request 1 using its database ID."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Single product returns HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Response matches the created product ID', function () {",
+              "    pm.expect(pm.response.json().data.id).to.eql(Number(pm.environment.get('productId')));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "4. Update product fields (PATCH)",
+      "request": {
+        "method": "PATCH",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sanctumToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"description\": \"Product description updated with a partial PATCH request.\"\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "products",
+            "{{productId}}"
+          ]
+        },
+        "description": "Updates only the submitted field and leaves the product name and variants unchanged."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Product is updated with HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('PATCH changes the description without requiring other fields', function () {",
+              "    pm.expect(pm.response.json().data.description).to.eql('Product description updated with a partial PATCH request.');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "5. Read one public product",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/products/{{productSlug}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "products",
+            "{{productSlug}}"
+          ]
+        },
+        "description": "Public GET example. Uses No Auth and should work while the product is active."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Active public product returns HTTP 200 without authentication', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Public response returns the created product', function () {",
+              "    pm.expect(pm.response.json().data.slug).to.eql(pm.environment.get('productSlug'));",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "6. Validation error example",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sanctumToken}}"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"Invalid Lab 4 Product\",\n  \"is_active\": true,\n  \"variants\": [\n    {\n      \"name\": \"Invalid variant\",\n      \"price\": 0,\n      \"stock\": -1,\n      \"is_active\": true\n    }\n  ]\n}",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          }
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/products",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "products"
+          ]
+        },
+        "description": "Demonstrates JSON validation errors for a zero price and negative stock."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Invalid product returns HTTP 422', function () {",
+              "    pm.response.to.have.status(422);",
+              "});",
+              "pm.test('Validation errors identify invalid variant fields', function () {",
+              "    const errors = pm.response.json().errors;",
+              "    pm.expect(errors).to.have.property('variants.0.price');",
+              "    pm.expect(errors).to.have.property('variants.0.stock');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "7. Missing product error example",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sanctumToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/products/{{missingProductId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "products",
+            "{{missingProductId}}"
+          ]
+        },
+        "description": "Demonstrates the not-found response using the missingProductId environment value."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Missing product returns HTTP 404', function () {",
+              "    pm.response.to.have.status(404);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "8. Delete product",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sanctumToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "products",
+            "{{productId}}"
+          ]
+        },
+        "description": "Permanently deletes the product and its variants. Historical order item snapshots are retained."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Product is deleted with HTTP 200', function () {",
+              "    pm.response.to.have.status(200);",
+              "    pm.expect(pm.response.json().message).to.eql('Product deleted successfully.');",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "9. Verify deleted product is unavailable internally",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{sanctumToken}}"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/admin/products/{{productId}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "admin",
+            "products",
+            "{{productId}}"
+          ]
+        },
+        "description": "Verifies the deleted product returns 404 from the same internal API resource."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Deleted product is no longer retrievable internally', function () {",
+              "    pm.response.to.have.status(404);",
+              "});"
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "10. Verify deleted product is unavailable publicly",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "{{baseUrl}}/api/v1/products/{{productSlug}}",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "products",
+            "{{productSlug}}"
+          ]
+        },
+        "description": "Verifies the deleted product can no longer be retrieved from the public product API."
+      },
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('Deleted product is no longer publicly retrievable', function () {",
+              "    pm.response.to.have.status(404);",
+              "});"
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

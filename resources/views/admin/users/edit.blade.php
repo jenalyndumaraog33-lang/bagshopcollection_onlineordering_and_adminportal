@@ -59,6 +59,11 @@
                 </select>
             </div>
 
+            <div class="field">
+                <input type="hidden" name="is_active" value="0">
+                <label for="is_active"><input id="is_active" type="checkbox" name="is_active" value="1" {{ old('is_active', $user->is_active) ? 'checked' : '' }}> Active account</label>
+            </div>
+
             <button type="submit" class="btn">Update User</button>
             <a href="{{ route('admin.users.index') }}" style="margin-left: 0.75rem;">Back to list</a>
         </form>

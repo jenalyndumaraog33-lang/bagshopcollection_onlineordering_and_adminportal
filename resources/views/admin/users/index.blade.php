@@ -43,6 +43,7 @@
                     <th>Name</th>
                     <th>Email</th>
                     <th>Role</th>
+                    <th>Status</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -52,6 +53,7 @@
                         <td>{{ $user->name }}</td>
                         <td>{{ $user->email }}</td>
                         <td>{{ ucfirst($user->role) }}</td>
+                        <td>{{ $user->is_active ? 'Active' : 'Inactive' }}</td>
                         <td>
                             <a href="{{ route('admin.users.edit', $user) }}" class="btn btn-secondary">Edit</a>
                             <form action="{{ route('admin.users.destroy', $user) }}" method="POST" style="display:inline;">
@@ -68,5 +70,6 @@
                 @endforelse
             </tbody>
         </table>
+        {{ $users->links() }}
     </body>
 </html>

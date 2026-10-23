@@ -15,8 +15,8 @@ class AdminMiddleware
      */
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() || ! $request->user()->isAdmin()) {
-            abort(403, 'Access denied. Only administrators can manage users.');
+        if (! $request->user() || ! $request->user()->is_active || ! $request->user()->isAdmin()) {
+            abort(403, 'Access denied. Only active administrators can access this resource.');
         }
 
         return $next($request);

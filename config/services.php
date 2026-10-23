@@ -43,4 +43,10 @@ return [
         'forecast_url' => env('WEATHER_FORECAST_URL', 'https://api.open-meteo.com/v1/forecast'),
     ],
 
+    'admin_user' => [
+        'name' => env('ADMIN_USER_NAME', 'Admin'),
+        'email' => env('ADMIN_USER_EMAIL', 'admin@gmail.com'),
+        'password' => env('ADMIN_USER_PASSWORD'),
+    ],
+
 ];
